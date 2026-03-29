@@ -41,8 +41,69 @@ export const PORTFOLIO_RULES = {
   maxOpenPositions: 5,
   maxPositionUSD: 600,
   minPositionUSD: 100,
-  stopLossPct: 0.03,
+  stopLossPct: 0.03,   // default fallback
   cooldownMinutes: 30,
+}
+
+// Per-symbol trading rules — overrides PORTFOLIO_RULES defaults
+// volumeConfirm: true = ต้องการ volume > avgVolume ก่อน BUY
+export const SYMBOL_RULES = {
+  // ETFs — volatile ต่ำ, threshold กว้าง, ไม่ต้อง volume confirm
+  SPY:  { stopLoss: 0.02, rsiBuy: 38, rsiSell: 62, volumeConfirm: false },
+  QQQ:  { stopLoss: 0.02, rsiBuy: 38, rsiSell: 62, volumeConfirm: false },
+  IWM:  { stopLoss: 0.02, rsiBuy: 38, rsiSell: 62, volumeConfirm: false },
+
+  // Mega-cap Tech — ปานกลาง
+  AAPL: { stopLoss: 0.03, rsiBuy: 32, rsiSell: 68, volumeConfirm: true },
+  MSFT: { stopLoss: 0.03, rsiBuy: 32, rsiSell: 68, volumeConfirm: true },
+  GOOGL:{ stopLoss: 0.03, rsiBuy: 32, rsiSell: 68, volumeConfirm: true },
+  AMZN: { stopLoss: 0.03, rsiBuy: 32, rsiSell: 68, volumeConfirm: true },
+  META: { stopLoss: 0.03, rsiBuy: 32, rsiSell: 68, volumeConfirm: true },
+
+  // High-volatility Tech — threshold แคบ, stop-loss กว้าง
+  NVDA: { stopLoss: 0.05, rsiBuy: 28, rsiSell: 72, volumeConfirm: true },
+  TSLA: { stopLoss: 0.05, rsiBuy: 28, rsiSell: 72, volumeConfirm: true },
+  PLTR: { stopLoss: 0.05, rsiBuy: 28, rsiSell: 72, volumeConfirm: true },
+  AMD:  { stopLoss: 0.05, rsiBuy: 28, rsiSell: 72, volumeConfirm: true },
+
+  // Semiconductors
+  INTC: { stopLoss: 0.03, rsiBuy: 32, rsiSell: 68, volumeConfirm: true },
+  AVGO: { stopLoss: 0.03, rsiBuy: 32, rsiSell: 68, volumeConfirm: true },
+
+  // Finance — ขยับช้า, threshold กว้าง
+  JPM:  { stopLoss: 0.025, rsiBuy: 35, rsiSell: 65, volumeConfirm: false },
+  BAC:  { stopLoss: 0.025, rsiBuy: 35, rsiSell: 65, volumeConfirm: false },
+  GS:   { stopLoss: 0.025, rsiBuy: 35, rsiSell: 65, volumeConfirm: false },
+
+  // Healthcare
+  JNJ:  { stopLoss: 0.025, rsiBuy: 35, rsiSell: 65, volumeConfirm: false },
+  UNH:  { stopLoss: 0.025, rsiBuy: 35, rsiSell: 65, volumeConfirm: false },
+  PFE:  { stopLoss: 0.025, rsiBuy: 35, rsiSell: 65, volumeConfirm: false },
+
+  // Consumer / Retail
+  WMT:  { stopLoss: 0.025, rsiBuy: 35, rsiSell: 65, volumeConfirm: false },
+  HD:   { stopLoss: 0.025, rsiBuy: 35, rsiSell: 65, volumeConfirm: false },
+  NKE:  { stopLoss: 0.025, rsiBuy: 35, rsiSell: 65, volumeConfirm: false },
+
+  // Energy
+  XOM:  { stopLoss: 0.025, rsiBuy: 35, rsiSell: 65, volumeConfirm: false },
+  CVX:  { stopLoss: 0.025, rsiBuy: 35, rsiSell: 65, volumeConfirm: false },
+}
+
+// Crypto default rules — volatile สูง, ไม่มี volume confirm (volume crypto ไม่ reliable)
+export const CRYPTO_RULES = {
+  stopLoss: 0.06,
+  rsiBuy: 28,
+  rsiSell: 72,
+  volumeConfirm: false,
+}
+
+// Helper — คืน rules ของ symbol นั้น
+export function getRules(symbol) {
+  if (SYMBOL_RULES[symbol]) return SYMBOL_RULES[symbol]
+  if (symbol.includes('/')) return CRYPTO_RULES
+  // fallback สำหรับ stock ที่ไม่ได้กำหนด
+  return { stopLoss: PORTFOLIO_RULES.stopLossPct, rsiBuy: 30, rsiSell: 70, volumeConfirm: false }
 }
 
 export const INDICATORS = {

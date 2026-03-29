@@ -1,4 +1,4 @@
-import { WATCHLIST, STOCK_WATCHLIST, CRYPTO_WATCHLIST, PORTFOLIO_RULES } from '../config.js'
+import { WATCHLIST, STOCK_WATCHLIST, CRYPTO_WATCHLIST, PORTFOLIO_RULES, getRules } from '../config.js'
 import { getRecentCandles } from '../data/history.js'
 import { log } from '../utils/logger.js'
 
@@ -80,17 +80,19 @@ ${positionRows}
 Unrealised P&L: $${unrealisedPnl.toFixed(2)}
 
 === MARKET SNAPSHOT (${pricesSnapshot.fetchedAt}) ===
-Symbol         |        Price |   Chg%  | RSI14 | AboveSMA20
+Symbol         |        Price |   Chg%  | RSI14 | SMA20 | Volume | Rules
 ${stockSection}
 ${cryptoSection}
 
-=== RECENT CANDLES (5m, last 5 candles) ===
+=== RECENT CANDLES (5m, last 12 candles) ===
 ${candleSection || 'No history yet (first cycle)'}
 
 === RULES ===
 - Max ${PORTFOLIO_RULES.maxOpenPositions} open positions at once
 - Max $${PORTFOLIO_RULES.maxPositionUSD} per position, min $${PORTFOLIO_RULES.minPositionUSD}
-- Stop-loss: sell if down ${PORTFOLIO_RULES.stopLossPct * 100}%
+- Each symbol has its own stop-loss (SL), RSI buy (B) and sell (S) thresholds shown in the snapshot
+- VOL+ means current volume is above average (stronger signal). VOL- means below average (weaker)
+- For stocks with VOL- consider waiting for volume confirmation before buying
 - Stocks: use ticker (AAPL, NVDA). Crypto: use COIN/USDT format (BTC/USDT, ETH/USDT)
 - Only trade stocks that appear in the snapshot (market may be closed)
 
@@ -104,12 +106,18 @@ For no action: [{ "action": "HOLD", "symbol": "ALL", "dollarAmount": 0, "reasoni
 
 function formatRow(sym, q) {
   const changePct = q.changePct ?? 0
+  const rules = getRules(sym)
+  const volStr = q.volumeAboveAvg != null
+    ? (q.volumeAboveAvg ? 'VOL+' : 'VOL-')
+    : '    '
   return [
     sym.padEnd(14),
     fmtPrice(q.price).padStart(12),
     `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%`.padStart(8),
     (q.rsi14 != null ? q.rsi14.toFixed(1) : 'N/A').padStart(6),
-    q.aboveSma20 != null ? (q.aboveSma20 ? 'YES' : 'NO') : 'N/A',
+    q.aboveSma20 != null ? (q.aboveSma20 ? 'YES' : 'NO ') : 'N/A',
+    volStr,
+    `SL:${(rules.stopLoss * 100).toFixed(0)}% B:${rules.rsiBuy} S:${rules.rsiSell}`,
   ].join(' | ')
 }
 

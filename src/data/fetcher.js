@@ -42,18 +42,25 @@ async function fetchSymbol(symbol) {
   const closes = validCandles.map(c => c.close).slice(-INDICATORS.candlesNeeded)
   const indicators = computeIndicators(closes)
 
+  // avgVolume จาก 5m candles ล่าสุด 20 แท่ง (ประมาณ 1.5 ชม.) สำหรับ volume confirmation
+  const volumes = validCandles.map(c => c.volume).filter(v => v != null)
+  const recentVolumes = volumes.slice(-20)
+  const avgVolume = recentVolumes.length > 0
+    ? recentVolumes.reduce((a, b) => a + b, 0) / recentVolumes.length
+    : null
+
   const price = quote.regularMarketPrice
   const sma20 = indicators.sma20
   const now = new Date().toISOString()
+  const volume = quote.regularMarketVolume
 
-  // Save candle to history
   appendCandle(symbol, {
     time: now,
     open: quote.regularMarketOpen,
     high: quote.regularMarketDayHigh,
     low: quote.regularMarketDayLow,
     close: price,
-    volume: quote.regularMarketVolume,
+    volume,
     ...indicators,
   })
 
@@ -63,7 +70,9 @@ async function fetchSymbol(symbol) {
     open: quote.regularMarketOpen,
     high: quote.regularMarketDayHigh,
     low: quote.regularMarketDayLow,
-    volume: quote.regularMarketVolume,
+    volume,
+    avgVolume,
+    volumeAboveAvg: avgVolume != null ? volume > avgVolume : null,
     change: quote.regularMarketChange,
     changePct: quote.regularMarketChangePercent,
     ...indicators,
