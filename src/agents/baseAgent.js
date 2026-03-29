@@ -50,14 +50,18 @@ export function buildPrompt(agentId, portfolio, pricesSnapshot) {
     ? `--- CRYPTO 24/7 ---\n${cryptoRows}`
     : ''
 
-  // 5 candles ล่าสุดของ symbols ที่ถือไว้ + top candidates
-  const candleSymbols = [
-    ...Object.keys(positions),
-    ...CRYPTO_WATCHLIST.filter(s => quotes[s]).slice(0, 5),
-  ].filter((s, i, arr) => arr.indexOf(s) === i).slice(0, 8)  // unique, max 8
+  // 12 candles สำหรับ: positions ที่ถืออยู่ + top 3 oversold candidates
+  const held = Object.keys(positions)
+  const oversoldCandidates = [...STOCK_WATCHLIST, ...CRYPTO_WATCHLIST]
+    .filter(s => quotes[s] && !positions[s] && quotes[s].rsi14 != null)
+    .sort((a, b) => quotes[a].rsi14 - quotes[b].rsi14)
+    .slice(0, 3)
+
+  const candleSymbols = [...held, ...oversoldCandidates]
+    .filter((s, i, arr) => arr.indexOf(s) === i)  // unique
 
   const candleSection = candleSymbols.map(sym => {
-    const candles = getRecentCandles(sym, 5)
+    const candles = getRecentCandles(sym, 12)
     if (candles.length === 0) return null
     const rows = candles.map(c =>
       `  ${c.time.substring(11, 16)} | ${fmtPrice(c.close).padStart(12)} | RSI ${c.rsi14?.toFixed(1) ?? 'N/A'}`
